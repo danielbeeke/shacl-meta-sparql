@@ -5,22 +5,22 @@ import { ParserOutput } from 'https://deno.land/x/shacl_meta@0.3/types.ts'
 import { Parser } from 'https://esm.sh/n3@1.16.3'
 import { RdfObjectLoader } from 'npm:rdf-object'
 
-export class Generator {
+export type Options = {
+    endpoint: string, 
+    shacl: string, 
+    vocab?: string, 
+    prefixes: { [key: string]: string }
+}
 
-    private shacl: string
-    private vocabAlias: string | undefined
-    private prefixes: { [key: string]: string }
+export class ShaclModel {
+
     private metas: ParserOutput = {}
-    private source: string
     private context: JsonLdContextNormalized | undefined
-    private sparqlGenerator: any
+    private sparqlGenerator: any = new SparqlGenerator()
+    private options: Options
 
-    constructor (source: string, shacl: string, vocabAlias?: string, prefixes: { [key: string]: string } = {}) {
-        this.source = source
-        this.shacl = shacl
-        this.vocabAlias = vocabAlias
-        this.prefixes = prefixes
-        this.sparqlGenerator = new SparqlGenerator()
+    constructor (options: Options) {
+        this.options = options
         /** @ts-ignore */
         return this.init().then(() => this)
     }
@@ -31,15 +31,15 @@ export class Generator {
 
     async init () {
         const shaclParser = new ShaclParser()
-        this.metas = await shaclParser.parse(this.shacl)
+        this.metas = await shaclParser.parse(this.options.shacl)
 
         const contextPrefixes = {
             ...shaclParser.shaclParser._prefixes,
-            ...this.prefixes
+            ...this.options.prefixes
         }
 
-        if (this.vocabAlias) {
-            contextPrefixes['@vocab'] = contextPrefixes[this.vocabAlias]
+        if (this.options.vocab) {
+            contextPrefixes['@vocab'] = contextPrefixes[this.options.vocab]
         }
 
         const contextParser = new ContextParser({
@@ -48,22 +48,29 @@ export class Generator {
         })
 
         this.context = await contextParser.parse(contextPrefixes, {
-            baseIRI: contextPrefixes[this.vocabAlias!]
+            baseIRI: contextPrefixes[this.options.vocab!]
         })
     }
 
+    /**
+     * Main external method, returns listings of objects, supports pagination.
+     */
     async list (limit = 10, offset = 0) {
         const iris = await this.getIris(limit, offset)
         const objects = await this.getObjectsByIri(iris)
         return objects
     }
 
+    /**
+     * Fetches objects by IRI from the endpoint.
+     */
     async getObjectsByIri (iris: Array<string>) {
         const query = this.constructQuery(iris)
+        console.log(query)
         const body = new FormData()
         body.set('query', query)
 
-        const response = await fetch(this.source, {
+        const response = await fetch(this.options.endpoint, {
             body,
             method: 'POST',
             headers: {
@@ -75,6 +82,9 @@ export class Generator {
         return this.turtleToObjects(text)
     }
 
+    /**
+     * Given the turtle text and the meta data, returns an array of JavaScript objects.
+     */
     async turtleToObjects (turtleText: string) {
         const parser = new Parser()
         const quads = await parser.parse(turtleText)
@@ -96,7 +106,7 @@ export class Generator {
 
                 const compactedName = this.context!
                     .compactIri(predicate, true)!
-                    .replaceAll(this.vocabAlias + ':', '')
+                    .replaceAll(this.options.vocab + ':', '')
 
                 const jsValues = values
                     .map(value => this.rdfTermValueToTypedVariable(value.term))
@@ -111,25 +121,15 @@ export class Generator {
         })
     }
 
-    rdfTermValueToTypedVariable = (value: any) => {
-        if (value.datatype?.value === 'http://www.w3.org/2001/XMLSchema#date') return new Date(value.value)
-        if (value.datatype?.value === 'http://www.w3.org/2001/XMLSchema#integer') return parseInt(value.value)
-        if (value.datatype?.value === 'http://www.w3.org/2001/XMLSchema#string') return value.value
-        if (value.datatype?.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString') return value.value
-    
-        if (value.type === 'literal') return value.value
-        if (value.type === 'uri') return value.value
-    
-        return value.value
-    }
-    
-
+    /**
+     * The fetch action to get IRIs
+     */
     async getIris (limit = 10, offset = 0) {
         const query = this.selectQuery(limit, offset)
         const body = new FormData()
         body.set('query', query)
 
-        const response = await fetch(this.source, {
+        const response = await fetch(this.options.endpoint, {
             body,
             method: 'POST',
             headers: {
@@ -141,6 +141,31 @@ export class Generator {
         return bindings.map((binding: any) => binding.s.value)
     }
 
+    /**
+     * A select query, this returns IRIs.
+     */
+    selectQuery (limit = 10, offset = 0) {
+        const prefixes = this.context!.getContextRaw()
+        delete prefixes['@vocab']
+        delete prefixes['@base']
+
+        const query = {
+            "queryType": "SELECT",
+            "distinct": true,
+            "variables": [variable('s')],
+            "where": this.where(),
+            "limit": limit,
+            "offset": offset,
+            "type": "query",
+            "prefixes": prefixes
+        }
+
+        return this.sparqlGenerator.stringify(query)
+    }
+
+    /**
+     * A construct query, this returns full objects.
+     */
     constructQuery (iris: Array<string>) {
         const templates = this.mainMeta.properties.map(shaclProperty => this.processTemplate(shaclProperty))
 
@@ -165,25 +190,9 @@ export class Generator {
         return this.sparqlGenerator.stringify(query)
     }
 
-    selectQuery (limit = 10, offset = 0) {
-        const prefixes = this.context!.getContextRaw()
-        delete prefixes['@vocab']
-        delete prefixes['@base']
-
-        const query = {
-            "queryType": "SELECT",
-            "distinct": true,
-            "variables": [variable('s')],
-            "where": this.where(),
-            "limit": limit,
-            "offset": offset,
-            "type": "query",
-            "prefixes": prefixes
-        }
-
-        return this.sparqlGenerator.stringify(query)
-    }
-
+    /**
+     * The whole where statement for queries.
+     */
     where () {
         return [
             quad(
@@ -191,20 +200,29 @@ export class Generator {
                 namedNode(this.context!.expandTerm('rdf:type', true)!), 
                 namedNode(this.mainMeta.attributes.targetClass)
             ),
-            ...this.mainMeta.properties.map(shaclProperty => this.processTriple(shaclProperty))
+            ...this.mainMeta.properties.map(shaclProperty => this.processShaclProperty(shaclProperty))
         ]
     }
 
+    /**
+     * Compacting is not enough for name identifiers, we also need to remove the colons.
+     */
     compactIriToName (iri: string) {
         const compactedIri = this.context!.compactIri(iri, true)
         return compactedIri.replaceAll(':', '')
     }
 
+    /**
+     * Creates the template part for one SHACL property, for a CONSTRUCT query
+     */
     processTemplate (shaclProperty: ShaclProperty) {
         const name = this.compactIriToName(shaclProperty.predicate as string)
         return quad(variable('s'), namedNode(shaclProperty.predicate as string), variable(name))
     }
 
+    /**
+     * A basic join for a SHACL property
+     */
     join (shaclProperty: ShaclProperty) {
         const name = this.compactIriToName(shaclProperty.predicate as string)
 
@@ -217,7 +235,10 @@ export class Generator {
         return shaclProperty.required ? statement : optional(statement)
     }
 
-    processTriple (shaclProperty: ShaclProperty) {
+    /**
+     * Adds the query where parts for one shacl property.
+     */
+    processShaclProperty (shaclProperty: ShaclProperty) {
         const parts = []
 
         const name = this.compactIriToName(shaclProperty.predicate as string)
@@ -251,6 +272,21 @@ export class Generator {
         }
 
         return parts
+    }
+    
+    /**
+     * Converts a RDFjs object to a JavaScript primative
+     */
+    rdfTermValueToTypedVariable = (value: any) => {
+        if (value.datatype?.value === 'http://www.w3.org/2001/XMLSchema#date') return new Date(value.value)
+        if (value.datatype?.value === 'http://www.w3.org/2001/XMLSchema#integer') return parseInt(value.value)
+        if (value.datatype?.value === 'http://www.w3.org/2001/XMLSchema#string') return value.value
+        if (value.datatype?.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString') return value.value
+    
+        if (value.type === 'literal') return value.value
+        if (value.type === 'uri') return value.value
+    
+        return value.value
     }
     
 }
