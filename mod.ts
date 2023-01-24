@@ -80,6 +80,8 @@ export class ShaclModel {
         const body = new FormData()
         body.set('query', query)
 
+        console.log(query)
+
         const response = await fetch(this.options.endpoint, {
             body,
             method: 'POST',
@@ -138,6 +140,8 @@ export class ShaclModel {
         const query = this.selectQuery(limit, offset)
         const body = new FormData()
         body.set('query', query)
+
+        console.log(query)
 
         const response = await fetch(this.options.endpoint, {
             body,
