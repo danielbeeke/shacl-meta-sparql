@@ -1,5 +1,3 @@
-import { ShaclParser, SparqlGenerator, quad, namedNode, literal, variable, ShaclProperty, Quad } from './deps.ts'
-
 export const optional = (inner: any) => {
     return {
         "type": "optional",

@@ -62,11 +62,21 @@ export class ShaclModel {
     }
 
     /**
+     * Second main external method, returns objects by iri(s).
+     */
+    get (iris: Array<string>): Promise<Array<any>>
+    get (iri: string): Promise<any>
+    async get (input: string | Array<string>) {
+        const iris = Array.isArray(input) ? input : [input]
+        const results = await this.getObjectsByIri(iris)
+        return Array.isArray(input) ? results : results[0]
+    }
+
+    /**
      * Fetches objects by IRI from the endpoint.
      */
     async getObjectsByIri (iris: Array<string>) {
         const query = this.constructQuery(iris)
-        console.log(query)
         const body = new FormData()
         body.set('query', query)
 
