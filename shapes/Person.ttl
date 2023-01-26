@@ -28,16 +28,18 @@ self:Philosopher
         sh:maxCount 1 ;
     ] ;
 
-    sh:property [
-        sh:path rdf:type ;
-        sh:in ( dbo:Philosopher ) ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-    ] ;
+    # sh:property [
+    #     sh:path rdf:type ;
+    #     sh:in ( dbo:Philosopher ) ;
+    #     sh:minCount 1 ;
+    #     sh:maxCount 1 ;
+    # ] ;
 
     sh:property [
-        sh:path dbp:birthPlace ;
+        sh:path dbo:birthPlace ;
         sh:nodeKind sh:IRI ;
+        # sh:in ( <http://dbpedia.org/resource/Kingdom_of_Iraq> ) ;
+        # sh:hasValue <http://dbpedia.org/resource/Kingdom_of_Iraq> ;
         sh:node self:Location ;
     ] ;
 
@@ -52,16 +54,16 @@ self:Location
 
     sh:targetClass <http://dbpedia.org/ontology/Location> ;
 
-    sh:property [
-        sh:path rdf:type ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-    ] ;
+    # sh:property [
+    #     sh:path rdf:type ;
+    #     sh:minCount 1 ;
+    #     sh:maxCount 1 ;
+    # ] ;
 
     sh:property [
-        sh:path foaf:name ;
-        shm:alias rdfs:label ;
+        sh:path rdfs:label ;
         sh:datatype rdf:langString ;
+        sh:languageIn ( "de" "fr" ) ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
     ] .
