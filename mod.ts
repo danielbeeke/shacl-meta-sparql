@@ -5,6 +5,8 @@ import { ParserOutput } from 'https://deno.land/x/shacl_meta@0.3/types.ts'
 import { Parser } from 'https://esm.sh/n3@1.16.3'
 import { RdfObjectLoader, Resource } from 'npm:rdf-object'
 
+const LANGSTRING = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString'
+
 export type Options = {
     endpoint: string,
     shacl: string,
@@ -19,21 +21,21 @@ export class ShaclModel {
     private sparqlGenerator: any = new SparqlGenerator()
     private options: Options
 
-    constructor(options: Options) {
+    constructor (options: Options) {
         this.options = options
         /** @ts-ignore */
         return this.init().then(() => this)
     }
 
-    get mainMeta() {
+    get mainMeta () {
         return this.metas[Object.keys(this.metas)[0]]
     }
 
-    get otherMetas() {
+    get otherMetas () {
         return Object.values(this.metas).filter(meta => meta !== this.mainMeta)
     }
 
-    async init() {
+    async init () {
         const shaclParser = new ShaclParser()
         this.metas = await shaclParser.parse(this.options.shacl)
 
@@ -59,7 +61,7 @@ export class ShaclModel {
     /**
      * Given the turtle text and the meta data, returns an array of JavaScript objects.
      */
-    async turtleToObjects(turtleText: string) {
+    async turtleToObjects (turtleText: string) {
         const parser = new Parser()
         const quads = await parser.parse(turtleText)
 
@@ -67,8 +69,9 @@ export class ShaclModel {
         await loader.importArray(quads)
 
         const objects = Object.entries(loader.resources)
-            .filter(([iri, resource]) => resource.property['urn:shacl-meta-sparql']?.value === 'urn:shacl-meta-sparql')
-
+            .filter(([_iri, resource]) => resource.property['urn:shacl-meta-sparql']?.value === 'urn:shacl-meta-sparql')
+        
+        // We start with the main objects.
         return objects.map(([iri, object]) => this.propertyToObject(loader, iri, object, this.mainMeta.properties))
     }
 
@@ -91,6 +94,7 @@ export class ShaclModel {
                 .map(value => this.rdfTermValueToTypedVariable(value.term))
                 .filter(Boolean)
 
+            // Recursion.
             if (property.nodeKind) {
                 const ids = values.map(value => value.term.value)
                 const nestedMeta = this.metas[property.nodeType as string]
@@ -120,6 +124,8 @@ export class ShaclModel {
 
         const query = this.query(limit, offset, iris)
 
+        console.log(query)
+
         const body = new FormData()
         body.set('query', query)
 
@@ -138,7 +144,7 @@ export class ShaclModel {
     /**
      * A construct query, this returns full objects.
      */
-    query(limit = 10, offset = 0, iris: Array<string> = []) {
+    query (limit = 10, offset = 0, iris: Array<string> = []) {
         const prefixes = this.context!.getContextRaw()
         delete prefixes['@vocab']
         delete prefixes['@base']
@@ -149,7 +155,7 @@ export class ShaclModel {
             return aliasses.get(iri)!
         }
 
-        const spo = quad(variable('s'), variable('p'), variable('o'))
+        const spo = () => quad(variable('s'), variable('p'), variable('o'))
 
         const mainPredicates: Array<string> = this.mainMeta.properties
             .map((shaclProperty: ShaclProperty) => shaclProperty.predicate as string)
@@ -195,7 +201,7 @@ export class ShaclModel {
                 ...properties
                 .filter(property => property.dataType)
                 .map(property => {
-                    if (property.dataType === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString') {
+                    if (property.dataType === LANGSTRING) {
                         return filterOr(
                             notEquals(variable('p'), namedNode(property.predicate as string)),
                             and(isliteral(variable('o')), notEquals(lang(variable('o')), literal('')))
@@ -211,7 +217,7 @@ export class ShaclModel {
         }
 
         const rdfType = this.context?.expandTerm('rdf:type', true)!
-        const template = [spo, quad(variable('this'), namedNode('urn:shacl-meta-sparql'), namedNode('urn:shacl-meta-sparql'))]
+        const template = [spo(), quad(variable('this'), namedNode('urn:shacl-meta-sparql'), namedNode('urn:shacl-meta-sparql'))]
 
         const innerWhere = [
             bgp(quad(variable('this'), namedNode(rdfType), namedNode(this.mainMeta.attributes.targetClass))),
@@ -220,7 +226,7 @@ export class ShaclModel {
         ].filter(Boolean)
 
         const where = [
-            spo,
+            spo(),
             group(selectQuery({ where: innerWhere, offset, limit, variables: [variable('this')] })),
             union([
                 group(bind(variable('s'), variable('this'))),
@@ -257,15 +263,13 @@ export class ShaclModel {
     /**
      * Converts a RDFjs object to a JavaScript primative
      */
-    rdfTermValueToTypedVariable = (value: any) => {
+    rdfTermValueToTypedVariable (value: any) {
         if (value.datatype?.value === 'http://www.w3.org/2001/XMLSchema#date') return new Date(value.value)
         if (value.datatype?.value === 'http://www.w3.org/2001/XMLSchema#integer') return parseInt(value.value)
         if (value.datatype?.value === 'http://www.w3.org/2001/XMLSchema#string') return value.value
         if (value.datatype?.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString') return value.value
-
         if (value.type === 'literal') return value.value
         if (value.type === 'uri') return value.value
-
         return value.value
     }
 

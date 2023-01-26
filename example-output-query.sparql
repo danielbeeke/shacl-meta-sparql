@@ -1,0 +1,46 @@
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+CONSTRUCT {
+  ?s ?p ?o.
+  ?this <urn:shacl-meta-sparql> <urn:shacl-meta-sparql>.
+}
+WHERE {
+  ?s ?p ?o.
+  {
+    SELECT ?this WHERE { ?this rdf:type dbo:Philosopher. }
+    OFFSET 100
+    LIMIT 10
+  }
+  { BIND(?this AS ?s) }
+  UNION
+  {
+    ?this ?p ?o.
+    FILTER(?this = ?s)
+    VALUES ?p {
+      rdfs:label
+      dbo:thumbnail
+      dbo:birthPlace
+      dbp:birthDate
+    }
+    FILTER((?p != dbo:birthPlace) || (ISIRI(?o)))
+    FILTER((?p != rdfs:label) || (LANG(?o) IN("en", "nl")))
+    FILTER((?p != rdfs:label) || ((ISLITERAL(?o)) && ((LANG(?o)) != "")))
+    FILTER((?p != dbp:birthDate) || ((DATATYPE(?o)) = xsd:date))
+  }
+  UNION
+  {
+    {
+      {
+        ?this dbo:birthPlace ?s.
+        VALUES ?p {
+          rdfs:label
+        }
+        FILTER((?p != rdfs:label) || (LANG(?o) IN("de", "fr")))
+        FILTER((?p != rdfs:label) || ((ISLITERAL(?o)) && ((LANG(?o)) != "")))
+      }
+    }
+  }
+}

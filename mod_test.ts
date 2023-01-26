@@ -2,7 +2,7 @@ import { assertEquals } from 'https://deno.land/std@0.168.0/testing/asserts.ts'
 import { ShaclModel } from './mod.ts'
 import { Parser } from 'https://esm.sh/sparqljs'
 
-Deno.test('Output of constructQuery', async () => {
+Deno.test('Output of get', async () => {
     const personShacl = Deno.readTextFileSync('./shapes/Person.ttl')
     
     const people = await new ShaclModel({
@@ -12,11 +12,9 @@ Deno.test('Output of constructQuery', async () => {
         prefixes: {
             'label': 'rdfs:label',
             'type': 'rdf:type',
-            'name': 'foaf:name',
-            'thumb': 'dbo:thumbnail',
         }
     })
 
-    const data = await people.get(2)
+    const data = await people.get(1, 100)
     console.log(data)
 })
