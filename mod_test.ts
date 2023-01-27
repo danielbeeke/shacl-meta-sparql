@@ -15,6 +15,6 @@ Deno.test('Output of get', async () => {
         }
     })
 
-    const data = await people.get(1, 100)
+    const data = await people.get(2, 6)
     console.log(data)
 })

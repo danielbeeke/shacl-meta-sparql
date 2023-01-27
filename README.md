@@ -1,49 +1,58 @@
 # SHACL meta SPARQL
 
-Convert SHACL to SPARQL queries with which you can get objects from a SPARQL endpoint that conform to the SHACL shape.
+Provides a `ShaclModel`. Configure this `ShaclModel` with a SHACL text file and it will in make it possible to query a SPARQL endpoint. You can get individual items or do pagination.
 
-# TODO
+You can combine this with [shacl-meta-type](https://github.com/danielbeeke/shacl-meta-type) for type completion.
 
-Here is one query doing everything at once.
+## How to use `ShaclModel`
 
-```sparql
-PREFIX db: <http://dbpedia.org/>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX dbp: <http://dbpedia.org/property/>
-PREFIX dbo: <http://dbpedia.org/ontology/>
+```TypeScript
+    import { ShaclModel } from 'shacl-meta-sparql'
 
-CONSTRUCT { ?s ?p ?o }
-#SELECT *
-WHERE {
-  ?s ?p ?o .
-  FILTER(ISIRI(?o) || LANG(?o) = 'en' || LANG(?o) = 'nl')
-
-  { SELECT ?this
-    WHERE {
-    	?this a dbo:Philosopher .
-#      VALUES ?this { <http://dbpedia.org/resource/Amina_Mama> }
-    }
-    LIMIT 1
-    OFFSET 12
-  }
+    const personShacl = Deno.readTextFileSync('./shapes/Person.ttl')
     
-  { 
-    BIND (?this as ?s)
-  }
-    
-  UNION {
-    ?this ?p ?o # This should not be needed but Virtuoso is not accepting a BIND(?this as ?s) and given back results. However the bid must be done anyway.
-     FILTER(?this = ?s) # It seems this speed things up.
-     VALUES ?p { rdfs:label dbo:thumbnail }
-  }
-  
-  UNION {
-  	?this dbp:birthPlace ?s .
-    VALUES ?p { rdfs:label dbo:country dbo:type }
-  }
+    const people = await new ShaclModel({
+        endpoint: 'https://dbpedia.org/sparql', 
+        shacl: personShacl, 
+        vocab: 'dbo', 
+        prefixes: {
+            'label': 'rdfs:label',
+            'type': 'rdf:type',
+        }
+    })
 
-  
-}
-LIMIT 10
+    const twoPaginatedPersons = await people.get( /* limit */ 2, /* offset */ 6)
+    // An array of Persons
+
+    const onePerson = await people.get( /* iri */ 'http://dbpedia.org/resource/Alvin_Plantinga')
+    // One Person
+
+    const twoPersons = await people.get( /* Array<iri> */ [
+      'http://dbpedia.org/resource/Alvin_Plantinga', 
+      'http://dbpedia.org/resource/Alva_Noë'
+    ])
+    // An array of Persons
+
+```
+
+### Outputs something like the following:
+
+```JavaScript
+[
+  {
+    id: "http://dbpedia.org/resource/Alva_Noë",
+    label: "Alva Noë",
+    thumbnail: "http://commons.wikimedia.org/wiki/Special:FilePath/Alva_Noë_(3419836383).jpg?width=300"
+  },
+  {
+    id: "http://dbpedia.org/resource/Alvin_Plantinga",
+    label: "Alvin Plantinga",
+    thumbnail: "http://commons.wikimedia.org/wiki/Special:FilePath/Alvin_Plantinga-3.jpg?width=300",
+    birthPlace: [
+      { id: "http://dbpedia.org/resource/Ann_Arbor,_Michigan", label: "Ann Arbor" },
+      { id: "http://dbpedia.org/resource/Michigan", label: "Michigan" }
+    ],
+    birthDate: 1932-11-15T00:00:00.000Z
+  }
+]
 ```

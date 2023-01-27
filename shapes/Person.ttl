@@ -44,7 +44,7 @@ self:Philosopher
     ] ;
 
     sh:property [
-        sh:path dbp:birthDate ;
+        sh:path dbo:birthDate ;
         sh:datatype xsd:date;
         sh:maxCount 1 ;
     ] .
