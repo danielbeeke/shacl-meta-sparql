@@ -10,3 +10,4 @@ export const variable = N3.DataFactory.variable
 
 export type { ShaclProperty } from 'https://deno.land/x/shacl_meta@0.4/types.ts'
 export { Parser as ShaclParser } from 'https://deno.land/x/shacl_meta@0.4/mod.ts'
+
