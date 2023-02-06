@@ -1,8 +1,7 @@
-import { ShaclParser, SparqlGenerator, quad, namedNode, literal, variable, ShaclProperty } from './deps.ts'
-import { ContextParser, JsonLdContextNormalized } from 'https://esm.sh/jsonld-context-parser@2.2.2'
+import { ShaclParser, SparqlGenerator, quad, namedNode, literal, variable, ShaclProperty, Parser } from './deps.ts'
+import { ContextParser, JsonLdContextNormalized } from 'npm:jsonld-context-parser'
 import { lang, bind, bgp, group, union, filterIs, values, filterOr, filterIn, notEquals, inOperator, equals, datatype, isliteral, and, isiri, filter, constructQuery, selectQuery } from './helpers.ts'
 import { ParserOutput } from 'https://deno.land/x/shacl_meta@0.3/types.ts'
-import { Parser } from 'https://esm.sh/n3@1.16.3'
 import { RdfObjectLoader, Resource } from 'npm:rdf-object'
 
 const LANGSTRING = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString'
@@ -63,6 +62,7 @@ export class ShaclModel {
      */
     async turtleToObjects (turtleText: string) {
         const parser = new Parser()
+
         const quads = await parser.parse(turtleText)
 
         const loader = new RdfObjectLoader({ context: this.context!.getContextRaw() })
@@ -124,8 +124,6 @@ export class ShaclModel {
 
         const query = this.query(limit, offset, iris)
 
-        console.log(query)
-
         const body = new FormData()
         body.set('query', query)
 
@@ -136,6 +134,7 @@ export class ShaclModel {
         })
 
         const text = await response.text()
+
         const objects = await this.turtleToObjects(text)
         if (typeof input1 === 'string') return objects[0]
         return objects

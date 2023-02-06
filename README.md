@@ -7,7 +7,7 @@ You can combine this with [shacl-meta-type](https://github.com/danielbeeke/shacl
 ## How to use `ShaclModel`
 
 ```TypeScript
-    import { ShaclModel } from 'shacl-meta-sparql'
+    import { ShaclModel } from 'https://deno.land/x/shacl_meta_sparql@0.1/mod.ts'
 
     const personShacl = Deno.readTextFileSync('./shapes/Person.ttl')
     

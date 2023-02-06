@@ -1,12 +1,12 @@
-export { Generator as SparqlGenerator } from 'https://esm.sh/sparqljs@3.6.2'
-import { DataFactory } from 'https://esm.sh/n3@1.16.3'
+import SparqlJS from 'npm:sparqljs'
+export const SparqlGenerator = SparqlJS.Generator
+import N3 from 'npm:n3'
+export const Parser = N3.Parser
+export const namedNode = N3.DataFactory.namedNode
+export const literal = N3.DataFactory.literal
+export const defaultGraph = N3.DataFactory.defaultGraph
+export const quad = N3.DataFactory.quad
+export const variable = N3.DataFactory.variable
 
-export const namedNode = DataFactory.namedNode
-export const literal = DataFactory.literal
-export const defaultGraph = DataFactory.defaultGraph
-export const quad = DataFactory.quad
-export const variable = DataFactory.variable
-
-export type { Quad } from 'https://esm.sh/n3@1.16.3'
 export type { ShaclProperty } from 'https://deno.land/x/shacl_meta@0.3/types.ts'
 export { Parser as ShaclParser } from 'https://deno.land/x/shacl_meta@0.3/mod.ts'
