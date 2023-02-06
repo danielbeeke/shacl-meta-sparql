@@ -1,0 +1,64 @@
+@prefix schema: <https://schema.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix vm: <http://viewmode.danielbeeke.nl/> .
+@prefix shsh: <http://www.w3.org/ns/shacl-shacl#> .
+@prefix shapes: <https://rdf.mediaworks.global/shapes/> .
+
+shapes:ViewMode
+    a sh:NodeShape ;
+
+    sh:targetClass vm:ViewMode ;
+
+    sh:property [
+        sh:path rdf:type ;
+        sh:equals vm:ViewMode ;
+    ] ;
+   
+    sh:property [
+        sh:path vm:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+
+    sh:property [
+        sh:path vm:targetClass ;
+        sh:nodeKind sh:IRI ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+
+    sh:property [
+        sh:path vm:property  ;
+        sh:node shapes:PropertyShape ;
+        sh:minCount 1 ;
+    ] .
+
+shapes:PropertyShape
+	a sh:NodeShape ;
+
+	sh:property [
+		sh:path vm:widget ;
+		sh:datatype rdf:string ;
+		sh:maxCount 1 ;
+		sh:minCount 1 ;
+	] ;
+
+    sh:property [
+        sh:path vm:widgetConfiguration  ;
+        sh:expandAll true ;
+    ] ;
+
+    sh:property [
+        sh:path vm:property  ;
+        sh:node sh:PropertyShape ;
+    ] ;
+
+	sh:property [
+		sh:path vm:path ;
+		sh:maxCount 1 ;
+		sh:minCount 1 ;
+	] .

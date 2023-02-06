@@ -1,0 +1,61 @@
+@prefix schema: <https://schema.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix shapes: <https://rdf.mediaworks.global/shapes/> .
+
+shapes:VideoObject
+    a sh:NodeShape ;
+
+    sh:targetClass schema:VideoObject ;
+
+    sh:property [
+        sh:path schema:name ;
+        sh:datatype rdf:langString ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path rdf:type ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+
+    sh:property [
+        sh:path schema:thumbnail  ;
+        sh:node schema:ImageShape ;
+        sh:datatype rdf:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+
+    sh:property [
+        sh:path schema:url  ;
+        sh:minCount 1 ;
+        sh:datatype rdf:string ;
+    ] .
+
+schema:ImageShape
+	a sh:NodeShape ;
+
+	sh:property [
+		sh:path schema:url ;
+		sh:maxCount 1 ;
+		sh:minCount 1 ;
+	] ;
+
+	sh:property [
+		sh:path schema:height ;
+		sh:datatype xsd:number ;
+		sh:maxCount 1 ;
+		sh:minCount 1 ;
+	] ;
+
+	sh:property [
+		sh:path schema:width ;
+		sh:datatype xsd:number ;
+		sh:maxCount 1 ;
+		sh:minCount 1 ;
+	] .

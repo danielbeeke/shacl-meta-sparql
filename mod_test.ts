@@ -3,7 +3,7 @@ import { ShaclModel } from './mod.ts'
 import { Parser } from 'https://esm.sh/sparqljs'
 
 Deno.test('Output of get', async () => {
-    const personShacl = Deno.readTextFileSync('./shapes/Person.ttl')
+    const personShacl = Deno.readTextFileSync('./shapes/ViewMode.ttl')
     
     const people = await new ShaclModel({
         endpoint: 'https://dbpedia.org/sparql', 

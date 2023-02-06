@@ -124,6 +124,8 @@ export class ShaclModel {
 
         const query = this.query(limit, offset, iris)
 
+        console.log(query)
+
         const body = new FormData()
         body.set('query', query)
 
@@ -237,6 +239,7 @@ export class ShaclModel {
                 ]),
                 union(nestedProperties.map(property => {
                     const meta = this.metas[property.nodeType as string]
+
                     const predicates: Array<string> = meta.properties.map(property => property.predicate as string)
 
                     return [
